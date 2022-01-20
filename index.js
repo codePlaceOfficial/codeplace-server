@@ -12,10 +12,15 @@ const io = new Server(server, {
 });
 
 const { SandboxManager } = require("./submodules/sandbox")
-const sandboxManager = new SandboxManager(10);
+const VirtualFileServer  = require("./submodules/virtualFileServer")
+const virtualFileEvent = require("./submodules/virtualFileEvent")
+
+
+const sandboxManager = new SandboxManager(50);
 io.on('connection', (socket) => {
     sandboxManager.createSandbox().then(sandbox => {
-        socket.emit("success", { sandboxId: sandbox.id }); // 成功分配
+        console.log("new",sandbox.id)
+        // terminal
         sandbox.container.getCmdStream().then(stream => {
             stream.on('data', (chunk) => {
                 socket.emit("data", chunk.toString());
@@ -24,9 +29,28 @@ io.on('connection', (socket) => {
                 stream.write(data);
             })
         })
+
+        // virtualFile
         socket.on("disconnect", () => {
+            console.log("dis",sandbox.id)
+            
             sandboxManager.deleteSandbox(sandbox.id)
+            sandboxManager.count;
         })
+
+        let virtualFileServer = new VirtualFileServer(sandbox.workPath);
+        virtualFileEvent.setEventEmiter((event) => {
+            socket.emit("serverFileEvent",event)
+        }, virtualFileServer)
+
+        socket.on("virtualFileClientReady",() => {
+            virtualFileServer.start()
+        })
+
+        socket.on("clientFileEvent",(event) => {
+            virtualFileEvent.serverDefaultExecEvent(event,virtualFileServer);
+        })
+        socket.emit("virtualFileServerReady", { sandboxId: sandbox.id }); // 成功分配
     }).catch(err => {
 
     })
