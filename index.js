@@ -14,7 +14,7 @@ const io = new Server(server, {
 const { SandboxManager } = require("./submodules/sandbox")
 const VirtualFileServer  = require("./submodules/virtualFileServer")
 const virtualFileEvent = require("./submodules/virtualFileEvent")
-
+const { EventEmitter } = virtualFileEvent
 
 const sandboxManager = new SandboxManager(50);
 io.on('connection', (socket) => {
@@ -32,21 +32,18 @@ io.on('connection', (socket) => {
 
         // virtualFile
         socket.on("disconnect", () => {
-            console.log("dis",sandbox.id)
-            
+            console.log("dis",sandbox.id)  
             sandboxManager.deleteSandbox(sandbox.id)
             sandboxManager.count;
         })
 
-        let virtualFileServer = new VirtualFileServer(sandbox.workPath);
-        virtualFileEvent.setEventEmiter((event) => {
+        const vfServerEventEmitter = new EventEmitter((event) => {
             socket.emit("serverFileEvent",event)
-        }, virtualFileServer)
-
+        })
+        let virtualFileServer = new VirtualFileServer(sandbox.workPath,vfServerEventEmitter);
         socket.on("virtualFileClientReady",() => {
             virtualFileServer.start()
         })
-
         socket.on("clientFileEvent",(event) => {
             virtualFileEvent.serverDefaultExecEvent(event,virtualFileServer);
         })
