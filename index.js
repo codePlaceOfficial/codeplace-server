@@ -10,46 +10,67 @@ const io = new Server(server, {
         origin: "http://localhost:3000",
     }
 });
-
 const { SandboxManager } = require("./submodules/sandbox")
-const VirtualFileServer  = require("./submodules/virtualFileServer")
+const VirtualFileServer = require("./submodules/virtualFileServer")
 const virtualFileEvent = require("./submodules/virtualFileEvent")
 const { EventEmitter } = virtualFileEvent
+const cryptoRandomString = require("crypto-random-string");
+const fs = require("fs")
+const path = require("path");
+
+// 删除文件夹及其下所有文件
+function deleteDir(path) {
+    let files = [];
+    if (fs.existsSync(path)) {
+        files = fs.readdirSync(path);
+        files.forEach((file, index) => {
+            let curPath = path + "/" + file;
+            if (fs.statSync(curPath).isDirectory()) {
+                deleteFile(curPath); //递归删除文件夹
+            } else {
+                fs.unlinkSync(curPath); //删除文件
+            }
+        });
+        fs.rmdirSync(path);
+    }
+}
 
 const sandboxManager = new SandboxManager(50);
 io.on('connection', (socket) => {
-    sandboxManager.createSandbox().then(sandbox => {
-        console.log("new",sandbox.id)
-        // terminal
-        sandbox.container.getCmdStream().then(stream => {
-            stream.on('data', (chunk) => {
-                socket.emit("data", chunk.toString());
-            });
-            socket.on("write", data => {
-                stream.write(data);
+    let dirName = cryptoRandomString({ length: 14 });
+    let workPath = path.join(__dirname, "code", dirName)
+    fs.mkdir(workPath, () => {
+        sandboxManager.createSandbox(workPath).then(sandbox => {
+            console.log("new", sandbox.id)
+            // terminal
+            sandbox.container.getCmdStream().then(stream => {
+                stream.on('data', (chunk) => {
+                    socket.emit("data", chunk.toString());
+                });
+                socket.on("write", data => {
+                    stream.write(data);
+                })
             })
-        })
+            // virtualFile
+            socket.on("disconnect", () => {
+                sandboxManager.deleteSandbox(sandbox.id);
+                deleteDir(workPath);
+                sandboxManager.count;
+            })
+            const vfServerEventEmitter = new EventEmitter((event) => {
+                socket.emit("serverFileEvent", event)
+            })
+            let virtualFileServer = new VirtualFileServer(sandbox.workPath, vfServerEventEmitter, sandbox);
+            socket.on("virtualFileClientReady", () => {
+                virtualFileServer.start()
+            })
+            socket.on("clientFileEvent", (event) => {
+                virtualFileEvent.serverDefaultExecEvent(event, virtualFileServer);
+            })
+            socket.emit("virtualFileServerReady", { sandboxId: sandbox.id }); // 成功分配
+        }).catch(err => {
 
-        // virtualFile
-        socket.on("disconnect", () => {
-            console.log("dis",sandbox.id)  
-            sandboxManager.deleteSandbox(sandbox.id)
-            sandboxManager.count;
         })
-
-        const vfServerEventEmitter = new EventEmitter((event) => {
-            socket.emit("serverFileEvent",event)
-        })
-        let virtualFileServer = new VirtualFileServer(sandbox.workPath,vfServerEventEmitter,sandbox);
-        socket.on("virtualFileClientReady",() => {
-            virtualFileServer.start()
-        })
-        socket.on("clientFileEvent",(event) => {
-            virtualFileEvent.serverDefaultExecEvent(event,virtualFileServer);
-        })
-        socket.emit("virtualFileServerReady", { sandboxId: sandbox.id }); // 成功分配
-    }).catch(err => {
-
     })
 });
 

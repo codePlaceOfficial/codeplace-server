@@ -11,6 +11,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
+    "crypto-random-string": "3.3",
     "express": "^4.17.2",
     "express-session": "^1.17.2",
     "socket.io": "^4.4.1"
