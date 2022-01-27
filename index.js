@@ -40,7 +40,7 @@ io.on('connection', (socket) => {
         const vfServerEventEmitter = new EventEmitter((event) => {
             socket.emit("serverFileEvent",event)
         })
-        let virtualFileServer = new VirtualFileServer(sandbox.workPath,vfServerEventEmitter);
+        let virtualFileServer = new VirtualFileServer(sandbox.workPath,vfServerEventEmitter,sandbox);
         socket.on("virtualFileClientReady",() => {
             virtualFileServer.start()
         })
