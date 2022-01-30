@@ -19,21 +19,21 @@ const fs = require("fs")
 const path = require("path");
 
 // 删除文件夹及其下所有文件
-function deleteDir(path) {
-    let files = [];
+const deleteFolderRecursive = function (path) {
+    var files = [];
     if (fs.existsSync(path)) {
         files = fs.readdirSync(path);
-        files.forEach((file, index) => {
-            let curPath = path + "/" + file;
-            if (fs.statSync(curPath).isDirectory()) {
-                deleteFile(curPath); //递归删除文件夹
-            } else {
-                fs.unlinkSync(curPath); //删除文件
+        files.forEach(function (file, index) {
+            var curPath = path + "/" + file;
+            if (fs.statSync(curPath).isDirectory()) { // recurse
+                deleteFolderRecursive(curPath);
+            } else { // delete file
+                fs.unlinkSync(curPath);
             }
         });
         fs.rmdirSync(path);
     }
-}
+};
 
 const sandboxManager = new SandboxManager(50);
 io.on('connection', (socket) => {
@@ -54,8 +54,7 @@ io.on('connection', (socket) => {
             // virtualFile
             socket.on("disconnect", () => {
                 sandboxManager.deleteSandbox(sandbox.id);
-                deleteDir(workPath);
-                sandboxManager.count;
+                deleteFolderRecursive(workPath);
             })
             const vfServerEventEmitter = new EventEmitter((event) => {
                 socket.emit("serverFileEvent", event)
