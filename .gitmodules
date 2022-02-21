@@ -8,3 +8,15 @@
 # 	path = submodules/fileSync
 # 	url = git@github.com:codePlaceOfficial/fileSync
 #     branch = dev
+[submodule "submodules/virtualFileEvent"]
+	path = submodules/virtualFileEvent
+	url = https://github.com/codePlaceOfficial/virtualFileEvent.git
+	branch = v0.1
+[submodule "submodules/virtualFileServer"]
+	path = submodules/virtualFileServer
+	url = https://github.com/codePlaceOfficial/virtualFileServer.git
+	branch = v0.2
+[submodule "submodules/sandbox"]
+	path = submodules/sandbox
+	url = https://github.com/codePlaceOfficial/sandbox.git
+	branch = v0.3
